@@ -1,0 +1,460 @@
+#		 ______  __  __  ______  ______  ______  ______  __   __  __  __    
+#		/\  __ \/\ \/\ \/\__  _\/\  __ \/\  == \/\  __ \/\ "-.\ \/\ \/ /    
+#		\ \  __ \ \ \_\ \/_/\ \/\ \ \/\ \ \  __<\ \  __ \ \ \-.  \ \  _"-.  
+#		 \ \_\ \_\ \_____\ \ \_\ \ \_____\ \_\ \_\ \_\ \_\ \_\\"\_\ \_\ \_\ 
+#		  \/_/\/_/\/_____/  \/_/  \/_____/\/_/ /_/\/_/\/_/\/_/ \/_/\/_/\/_/ 
+#				Version 2.0 By andorra101
+                                                                    
+
+options:
+	UUIDs: false
+	# Saves Variables as %uuid of player% rather than %player%.
+
+	UUID-Autokick: true
+
+	Time Checking Command: gtime
+	# Default Autorank Checking command.
+	Time Check: 1 minute 
+	#Time that a check should be made to rank up players.
+
+# DO NOT EDIT THIS:
+	Version: 2.0
+
+# Timer------------------------------------------------
+
+every {@Time Check}:
+	loop all players:
+		set {_timer.%loop-player%} to difference between {Autorank::users::%{Autorank::rankVar::%loop-player%}%::timer} and now
+		loop {Autorank::timer::timers::*}:
+			if {Autorank::users::%{Autorank::rankVar::%loop-player%}%::timers::rewards::%loop-value%::use} is false:
+				if {_timer.%loop-player%} is more than {Autorank::timer::timers::%loop-value%::duration}:
+					set {Autorank::users::%{Autorank::rankVar::%loop-player%}%::timers::rewards::%loop-value%::use} to true
+					if {Autorank::timer::timers::%loop-value%::rewards::rewardMessage} is set:
+						set {_rewardMSG} to "%{Autorank::timer::timers::%loop-value%::rewards::rewardMessage}%"
+						set {_rewardMSG} to coloured {_rewardMSG}
+						send {_rewardMSG} to loop-player
+					loop {Autorank::timer::timers::%loop-value%::rewards::consoleCommands::*}:
+						set {_command} to "%loop-value-2%"
+						replace all "%%player%%" in {_command} with "%loop-player%"
+						replace all "<player>" in {_command} with "%loop-player%"
+						make console execute command "%loop-value-2%"
+on disconnect:
+	set {Autorank::users::%{Autorank::rankVar::%event-player%}%::time} to difference between {Autorank::users::%{Autorank::rankVar::%event-player%}%::timer} and now
+     
+# Commands-----------------------------------------------
+
+command /{@Time Checking Command} [<offline player>]:
+	trigger:
+		if arg 1 is set:
+			if arg 1 is online:
+				send "&9%arg 1% has played for %{Autorank::users::%{Autorank::rankVar::%arg 1%}%::timer}%"
+			else:
+				send "&cThe Player must be online to get their playtime!"
+		else:
+			set {_timer.%player%} to difference between {Autorank::users::%{Autorank::rankVar::%player%}%::timer} and now
+			send "&7-----------------------------------------------------"
+			send "&7| &9You've played for&7: &b%{_timer.%player%}%"
+			loop {Autorank::timer::timers::*}:
+				if {Autorank::users::%{Autorank::rankVar::%player%}%::timers::rewards::%loop-value%::use} is false:
+					set {_timer.%player%} to difference between {Autorank::users::%{Autorank::rankVar::%player%}%::timer} and now
+					set {_difference.%loop-value%} to now
+					remove {Autorank::timer::timers::%loop-value%::duration} from {_difference.%loop-value%}
+					set {_difference.%loop-value%} to difference between {_difference.%loop-value%} and now
+					remove {_timer.%player%} from {_difference.%loop-value%}
+					set {_difference.%loop-value%} to round({_difference.%loop-value%})
+					send "&7| &9You have &b%{_difference.%loop-value%}% &9until your next Rank!"
+					set {_timer} to true
+					exit loop
+			if {_timer} isn't set:
+				send "&7| &9There are no more ranks!"
+			else:
+				clear {_timer}
+			send "&7-----------------------------------------------------"
+
+command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
+	aliases: ar
+	permission: autorank.admin
+	trigger:
+		if arg 1 is set:
+			if arg 1 is "timer":
+				if arg 2 is set:
+					if arg 2 is "create" or "new":
+						if arg 3 is set:
+							if arg 4 is set:
+								loop {Autorank::timer::timers::*}:
+									if loop-value is arg 3:
+										send "&cError: This Rank is already set, Try /autorank timer edit %arg 3%"
+										stop
+								set {_timer} to "%arg 4% minutes" parsed as timespan
+								if {_timer} isn't set:
+									send "&9Usage: /autorank timer create <Timer> <Minutes>"
+									stop
+								set {Autorank::timer::timers::%arg 3%} to "%arg 3%"
+								set {Autorank::timer::timers::%arg 3%::duration} to {_timer}
+								send "&9Timer %arg 3% created for %arg 4% minutes."
+								stop
+							else:
+								send "&9Usage: /autorank timer create <Timer> <Minutes>"
+								stop
+						else:
+							send "&9Usage: /autorank timer create <Timer> <Minutes>"
+							stop
+					if arg 2 is "edit" or "modify":
+						if arg 3 is set:
+							if {Autorank::timer::timers::%arg 3%} is set:
+								if arg 4 is set:
+									if arg 4 is "commands":
+										if arg 5 is set:
+											if arg 5 is "add":
+												if arg 6 is set:
+													add "%arg 6%" to {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}
+													send "&9Added &b%arg 6% &9to Timer %arg 3%."
+													stop
+												else:
+													send "&9Usage: /autorank timer edit %arg 3% commands add <command>"
+													stop
+											if arg 5 is "remove":
+												if arg 6 is set:
+													if {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*} contains arg 6:
+														remove "%arg 6%" from {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}
+														send "&9Removed &b%arg 6% &9from Timer %arg 3%."
+														stop
+													else:
+														send "&cCommand ""%arg 6%"" is not set. Try /autorank timer configuration %arg 3% to see a list of commands."
+														stop
+												else:
+													send "&9Usage: /autorank timer edit %arg 3% commands remove <command>"
+													stop
+											else:
+												send "&9Usage: /autorank timer edit commands <add/remove> <command>"
+												stop
+										else:
+											send "&9Usage: /autorank timer edit commands <add/remove> <command>"
+											stop
+									if arg 4 is "duration" or "time":
+										if arg 5 is set:
+											set {_time} to "%arg 5% minutes" parsed as timespan
+											set {Autorank::timer::timers::%arg 3%::duration} to {_time}
+											send "&9Duration of %arg 3% was changes to %arg 5% minutes"
+											clear {_time}
+											stop
+										else:
+											send "&9Usage: /autorank timer edit %arg 3% duration <minutes>"
+											stop
+									if arg 4 is "message":
+										if arg 5 is set:
+											set {Autorank::timer::timers::%arg 3%::rewards::rewardMessage} to "%arg 5%"
+											send "&9%arg 3%'s reward message has been set to:"
+											send "%{Autorank::timer::timers::%arg 3%::rewards::rewardMessage}%"
+											stop
+										else:
+											send "&9Usage: /autorank timer edit message <message>"
+											stop
+								else:
+									send "&9---*---[ Autorank v2.0.0 ]---*---"
+									send "&9Timer Editor:"
+									send "&7- &bCommands <add/remove> <command>&9| &7Add a command to reward your players with."
+									send "&7- &bDuration <minutes>&9| &7Set the duration of the rank"
+									send "&7- &bMessage <Message>&9| &7Set what should be sent when they rank up"
+									stop
+							else:
+								send "&9This Timer isn't found. Try /autorank timer list"
+								stop
+						else:
+							send "&9Usage: /autorank timer edit <Timer>"
+					if arg 2 is "remove" or "delete":
+						if arg 3 is set:
+							if {Autorank::timer::timers::%arg 3%} is set:
+								send "&9Removing this Timer: %arg 3%"
+								delete {Autorank::timer::timers::%arg 3%}
+								delete {Autorank::timer::timers::%arg 3%::duration}
+								delete {Autorank::timer::timers::%arg 3%::rewards::rewardMessage}
+								loop {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}:
+									delete {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::%loop-index%}
+								stop
+							else:
+								send "&cError: Timer not found. Try ""/autorank timer list"" to view a list of all set Timers."	
+								stop
+						else:
+							send "&9Usage: /autorank timer remove <Timer>"
+							stop
+					if arg 2 is "list":
+						send "&9---*---[ Autorank Timers ]---*---"
+						if amount of {Autorank::timer::timers::*} is more than 0:
+							loop {Autorank::timer::timers::*}:
+								send "&9%loop-value%&7: &bDuration: %{Autorank::timer::timers::%loop-value%::duration}%"
+							stop
+						else: 
+							send "&9There are no timers."
+							stop
+					if arg 2 is "tutorial" or "?":
+						send "&9Tutorial Coming Soon."
+						stop
+					if arg 2 is "config" or "configuration":
+						if arg 3 is set:
+							if {Autorank::timer::timers::%arg 3%} is set:
+								send ""
+								send "&9---*---[ Autorank Timers ]---*---"
+								send "&9%arg 3%&7: &bDuration: %{Autorank::timer::timers::%arg 3%::duration}%"
+								send "&9- &bReward Message&7:"
+								if {Autorank::timer::timers::%arg 3%::rewards::rewardMessage} is set:
+									send "  &7- %{Autorank::timer::timers::%arg 3%::rewards::rewardMessage}%"
+								else:
+									send " &7&oNo Reward Message is set."
+								send "&9- &bCommands&7:"
+								if amount of {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*} is more than 0:
+									loop {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}:
+										send " &7- &b%loop-value-2%"
+									stop
+								else:
+									send " &7&oNo Commands are set."
+									stop	
+							else:
+								send "&cError: Timer not found. Try ""/autorank timer list"" for a list of timers."		
+						else:
+							send ""
+							send "&9---*---[ Autorank Timers ]---*---"	
+							loop {Autorank::timer::timers::*}:
+								send "&9%loop-value%&7: &bDuration: %{Autorank::timer::timers::%loop-value%::duration}%"
+								send "&9- &bReward Message&7:"
+								if {Autorank::timer::timers::%loop-value%::rewards::rewardMessage} is set:
+									send "  &7- %{Autorank::timer::timers::%loop-value%::rewards::rewardMessage}%"
+								else:
+									send " &7&oNo Reward Message is set."
+								send "&9- &bCommands&7:"
+								if amount of {Autorank::timer::timers::%loop-value%::rewards::consoleCommands::*} is more than 0:
+									loop {Autorank::timer::timers::%loop-value%::rewards::consoleCommands::*}:
+										send " &7- &b%loop-value-2%"
+								else:
+									send " &7&oNo Commands are set."
+									stop
+					else:	
+						send ""
+						send "&9---*---[ &bAutorank v2.0.0 &9]---*---"
+						send ""
+						send "&9- &bCreate <timer> <time>, new&8: &7&oCreate a new Autorank timer."
+						send "&9- &bEdit, modify <timer>&8: &7&oEdit an existing timer."
+						send "&9- &bDelete, remove <timer>&8: &7&oRemove an existing timer."
+						send "&9- &bList&8: &7&oList all Existing timers."
+						send "&9- &bconfig [<timer>]&8: &7&oView the Config of a timer."
+						send "&9- &bTutorial&8: &7&oComing Soon."
+						stop
+				else:	
+					send ""
+					send "&9---*---[ Autorank v2.0.0 ]---*---"
+					send ""
+					send "&9- &bCreate <timer> <time>, new&8: &7&oCreate a new Autorank timer."
+					send "&9- &bEdit, modify <timer>&8: &7&oEdit an existing timer."
+					send "&9- &bDelete, remove <timer>&8: &7&oRemove an existing timer."
+					send "&9- &bList&8: &7&oList all Existing timers."
+					send "&9- &bconfig [<timer>]&8: &7&oView the Config of a timer."
+					send "&9- &bTutorial&8: &7&oComing Soon."
+					stop
+			if arg 1 is "Users" or "User":
+				if arg 2 is set:
+					if arg 2 is "add":
+						if arg 3 is set:
+							if arg 4 is set:
+								if {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} is set:
+									set {_timer.%arg 3%} to difference between {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} and now
+									set {_minutes} to "%arg 4% minutes" parsed as timespan
+									if {_minutes} is set:
+										add {_minutes} to {_timer.%arg 3%}
+										set {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} to now
+										remove {_timer.%arg 3%} from {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer}
+										send "&9Added %{_minutes}% to %arg 3%'s Player Timer."
+										stop
+									else:
+										if "%arg 4%" contains "minutes" or "minute":
+											send "&cError: Don't put ""minute(s)"" in Argument 4."
+											stop
+										else:
+											send "&cError: Argument 4 must be an Integer."
+											stop
+								else:
+									send "&cError: Player Not Found."
+									stop
+								
+							else:
+								send "&9Usage: /autorank user add <player> <minutes>"
+								stop
+						else:
+							send "&9Usage: /autorank user add <player> <minutes>"
+							stop
+					if arg 2 is "remove":
+						if arg 3 is set:
+							if arg 4 is set:
+								if {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} is set:
+									set {_timer.%arg 3%} to difference between {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} and now
+									set {_minutes} to "%arg 4% minutes" parsed as timespan
+									if {_minutes} is set:
+										remove {_minutes} from {_timer.%arg 3%}
+										set {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} to now
+										remove {_timer.%arg 3%} from {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer}
+										send "&9Removed %{_minutes}% from %arg 3%'s Player Timer."
+										stop
+									else:
+										if "%arg 4%" contains "minutes" or "minute":
+											send "&cError: Don't put ""minute(s)"" in Argument 4."
+											stop
+										else:
+											send "&cError: Argument 4 must be an Integer."
+											stop
+								else:
+									send "&cError: Player Not Found."
+									stop
+							else:
+								send "&9Usage: /autorank user remove <player> <minutes>"
+								stop
+						else:
+							send "&9Usage: /autorank user remove <player> <minutes>"
+							stop
+					if arg 2 is "reset":
+						if arg 3 is set:
+							if {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} is set:
+								set {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} to now
+								delete {Autorank::users::%{Autorank::rankVar::%arg 3%}%::time}
+								loop {Autorank::timer::timers::*}:
+									set {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timers::rewards::%loop-value%::use} to false
+								send "&9Reset %arg 3%'s Autorank Player Timer."
+								stop
+							else:
+								send "&cError: Player Not Found."
+								stop
+						else:
+							send "&9Usage: /autorank user reset <player>"
+							stop
+					if arg 2 is "set":
+						if arg 3 is set:
+							if arg 4 is set:
+								if {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} is set:
+									set {_timer.%arg 3%} to now
+									set {_minutes} to "%arg 4% minutes" parsed as timespan
+									if {_minutes} is set:
+										remove {_minutes} from {_timer.%arg 3%}
+										set {Autorank::users::%{Autorank::rankVar::%arg 3%}%::timer} to {_timer.%arg 3%}
+										send "&9Set %arg 3%'s Player Timer to %{_minutes}%."
+										stop
+									else:
+										if "%arg 4%" contains "minutes" or "minute":
+											send "&cError: Don't put ""minute(s)"" in Argument 4."
+											stop
+										else:
+											send "&cError: Argument 4 must be an Integer."
+											stop
+								else:
+									send "&cError: Player Not Found."
+									stop
+							else:
+								send "&9Usage: /autorank user set <player> <minutes>"
+								stop
+						else:
+							send "&9Usage: /autorank user set <player> <minutes>"
+							stop
+					else:
+						send "&9---*---[ &bAutorank User &9]---*---"
+						send ""
+						send " &7- &badd <player> <minutes>&8: &7&oAdd time to the Player's Timer."
+						send " &7- &bremove <player> <minutes>&8: &7&oRemove time from the Player's Timer."
+						send " &7- &breset <player>&8: &7&oReset a Player's Timer."
+						send " &7- &bset <player> <minutes>&8: &7&oSet the Player's Timer"
+						stop
+
+				else:
+					send ""
+					send "&9---*---[ &bAutorank User &9]---*---"
+					send ""
+					send " &7- &badd <player> <minutes>&8: &7&oAdd time to the Player's Timer."
+					send " &7- &bremove <player> <minutes>&8: &7&oRemove time from the Player's Timer."
+					send " &7- &breset <player>&8: &7&oReset a Player's Timer."
+					send " &7- &bset <player> <minutes>&8: &7&oSet the Player's Timer"
+					stop
+			else:	
+				send ""
+				send "&9---*---[ &bAutorank v2.0.0 &9]---*---"
+				send ""
+				send " &7- &bTimer&8: &7&oView the Options for Automatic Timers."
+				send " &7- &bUsers&8: &7&oView the Options for Users."
+				stop
+		else:	
+			send ""
+			send "&9---*---[ &bAutorank v2.0.0 &9]---*---"
+			send ""
+			send " &7- &bTimer&8: &7&oView the Options for Automatic Timers."
+			send " &7- &bUsers&8: &7&oView the Options for Users."
+			stop	
+# Resources----------------------------------------------
+
+on script load:
+	if {Autorank::uuid} is set:
+		if {Autorank::uuid} isn't {@UUIDs}:
+			if {@UUID-Autokick} is true:
+				broadcast "&cA Variable Element of Autorank has been changed."
+				broadcast "&7&oYou Will be Automatically Kicked in &45 seconds&7..."
+				wait 1 second
+				broadcast "&c4..."
+				wait 1 second
+				broadcast "&63..."
+				wait 1 second
+				broadcast "&e2..."
+				wait 1 second
+				broadcast "&a1..."
+				wait 1 second
+				set {Autorank::uuid} to {@UUIDs}
+				loop all players:
+					kick loop-player due to "&9[Autorank] You may Rejoin Now."
+			else:
+				broadcast "&cA Variable change has been made. It is recommended to relog otherwise Autorank stats &nWILL&c break!"
+	else:
+		set {Autorank::uuid} to {@UUIDs}
+
+on join:
+	if {@UUIDs} is true:
+		set {Autorank::rankVar::%player%} to the uuid of player
+	if {@UUIDs} is false:
+		set {Autorank::rankVar::%player%} to the player
+# Converter ---------------------------------------------
+	if {@UUIDs} is true:
+		if {Autorank::users::%player%::timer} is set:
+			set {Autorank::users::%uuid of player%::time} to {Autorank::users::%player%::time}
+			delete {Autorank::users::%player%::timer}
+		if {Autorank::users::%player%::time} is set:
+			set {Autorank::users::%uuid of player%::time} to {Autorank::users::%player%::time}
+			delete {Autorank::users::%player%::time}
+		loop {Autorank::timer::timers::*}:
+			if {Autorank::users::%player%::timers::rewards::%loop-value%::use} is set:
+				set {Autorank::users::%uuid of player%::timers::rewards::%loop-value%::use} to {Autorank::users::%player%::timers::rewards::%loop-value%::use}
+				delete {Autorank::users::%player%::timers::rewards::%loop-value%::use}
+	if {@UUIDs} is false:
+		if {Autorank::users::%uuid of player%::timer} is set:
+			set {Autorank::users::%player%::timer} to {Autorank::users::%uuid of player%::timer}
+			delete {Autorank::users::%uuid of player%::timer}
+		if {Autorank::users::%uuid of player%::time} is set:
+			set {Autorank::users::%player%::time} to {Autorank::users::%uuid of player%::time}
+			delete {Autorank::users::%uuid of player%::time}
+		loop {Autorank::timer::timers::*}:
+			if {Autorank::users::%uuid of player%::timers::rewards::%loop-value%::use} is set:
+				set {Autorank::users::%player%::timers::rewards::%loop-value%::use} to {Autorank::users::%uuid of player%::timers::rewards::%loop-value%::use}
+				delete {Autorank::users::%uuid of player%::timers::rewards::%loop-value%::use}
+
+# Variables ----------------------------------------------
+on join:
+	if {Autorank::users::%{Autorank::rankVar::%player%}%::time} is set:
+		set {Autorank::users::%{Autorank::rankVar::%player%}%::timer} to now
+		remove {Autorank::users::%{Autorank::rankVar::%player%}%::time} from {Autorank::users::%{Autorank::rankVar::%player%}%::timer}
+	if {Autorank::users::%{Autorank::rankVar::%player%}%::timer} isn't set:
+		set {Autorank::users::%{Autorank::rankVar::%player%}%::timer} to now
+	loop {Autorank::timer::timers::*}:
+		if {Autorank::users::%{Autorank::rankVar::%player%}%::timers::rewards::%loop-value%::use} isn't set:
+			set {Autorank::users::%{Autorank::rankVar::%player%}%::timers::rewards::%loop-value%::use} to false
+
+
+
+#	{Autorank::rankVar::<PLAYER>} = <PLAYER/UUID>
+#	{Autorank::users::<PLAYER/UUID>::time} = now
+#	{Autorank::users::<PLAYER/UUID>::timer} = now
+#	{Autorank::users::<PLAYER/UUID>::timers::rewards::<TIMER>::use} = false
+#	{Autorank::timer::timers::<TIMER>} = <TIMER>
+#	{Autorank::timer::timers::<TIMER>::duration} = <TIMER DURATION>
+#	{Autorank::timer::timers::<TIMER>::rewards::rewardMessage} = "<MESSAGE>"
+#	{Autorank::timer::timers::<TIMER>::rewards::consoleCommands::<COMMAND>} = "<COMMAND>"
