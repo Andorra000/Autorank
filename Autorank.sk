@@ -18,7 +18,7 @@ options:
 	#Time that a check should be made to rank up players.
 
 # DO NOT EDIT THIS:
-	Version: 2.0
+	Version: 2.0.5
 
 # Timer------------------------------------------------
 
@@ -54,21 +54,30 @@ command /{@Time Checking Command} [<offline player>]:
 			set {_timer.%player%} to difference between {Autorank::users::%{Autorank::rankVar::%player%}%::timer} and now
 			send "&7-----------------------------------------------------"
 			send "&7| &9You've played for&7: &b%{_timer.%player%}%"
+			clear {_highest}
 			loop {Autorank::timer::timers::*}:
 				if {Autorank::users::%{Autorank::rankVar::%player%}%::timers::rewards::%loop-value%::use} is false:
+					set {_timers.%player%::%loop-value%} to {Autorank::timer::timers::%loop-value%::duration}
+			loop size of {_timers.%player%::*} times:
+				loop {_timers.%player%::*}:
+					if {_lowest} is not set:
+						set {_lowest} to loop-index
+					else:
+						if {_timers.%player%::%{_lowest}%} is more than loop-value:
+							set {_lowest} to loop-index
+				if {_lowest} isn't set:
+					send "&7| &9There are no more ranks!"
+				else:	
 					set {_timer.%player%} to difference between {Autorank::users::%{Autorank::rankVar::%player%}%::timer} and now
-					set {_difference.%loop-value%} to now
-					remove {Autorank::timer::timers::%loop-value%::duration} from {_difference.%loop-value%}
-					set {_difference.%loop-value%} to difference between {_difference.%loop-value%} and now
-					remove {_timer.%player%} from {_difference.%loop-value%}
-					set {_difference.%loop-value%} to round({_difference.%loop-value%})
-					send "&7| &9You have &b%{_difference.%loop-value%}% &9until your next Rank!"
-					set {_timer} to true
+					set {_difference.%{_lowest}%} to now
+					remove {Autorank::timer::timers::%{_lowest}%::duration} from {_difference.%{_lowest}%}
+					set {_difference.%{_lowest}%} to difference between {_difference.%{_lowest}%} and now
+					remove {_timer.%player%} from {_difference.%{_lowest}%}
+					set {_difference.%{_lowest}%} to round({_difference.%{_lowest}%})
+					send "&7| &9You have &b%{_difference.%{_lowest}%}% &9until your next Rank!"
 					exit loop
-			if {_timer} isn't set:
-				send "&7| &9There are no more ranks!"
-			else:
-				clear {_timer}
+					clear {_timers.%player%::*}
+					clear {_lowest}
 			send "&7-----------------------------------------------------"
 
 command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
@@ -92,6 +101,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 								set {Autorank::timer::timers::%arg 3%} to "%arg 3%"
 								set {Autorank::timer::timers::%arg 3%::duration} to {_timer}
 								send "&9Timer %arg 3% created for %arg 4% minutes."
+								send "&7Notice: &cAll players must relog to take effect!"
 								stop
 							else:
 								send "&9Usage: /autorank timer create <Timer> <Minutes>"
@@ -230,7 +240,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 									stop
 					else:	
 						send ""
-						send "&9---*---[ &bAutorank v2.0.0 &9]---*---"
+						send "&9---*---[ &bAutorank v{@Version} &9]---*---"
 						send ""
 						send "&9- &bCreate <timer> <time>, new&8: &7&oCreate a new Autorank timer."
 						send "&9- &bEdit, modify <timer>&8: &7&oEdit an existing timer."
@@ -241,7 +251,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 						stop
 				else:	
 					send ""
-					send "&9---*---[ Autorank v2.0.0 ]---*---"
+					send "&9---*---[ Autorank v{@Version} ]---*---"
 					send ""
 					send "&9- &bCreate <timer> <time>, new&8: &7&oCreate a new Autorank timer."
 					send "&9- &bEdit, modify <timer>&8: &7&oEdit an existing timer."
@@ -371,14 +381,14 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 					stop
 			else:	
 				send ""
-				send "&9---*---[ &bAutorank v2.0.0 &9]---*---"
+				send "&9---*---[ &bAutorank v{@Version} &9]---*---"
 				send ""
 				send " &7- &bTimer&8: &7&oView the Options for Automatic Timers."
 				send " &7- &bUsers&8: &7&oView the Options for Users."
 				stop
 		else:	
 			send ""
-			send "&9---*---[ &bAutorank v2.0.0 &9]---*---"
+			send "&9---*---[ &bAutorank v{@Version} &9]---*---"
 			send ""
 			send " &7- &bTimer&8: &7&oView the Options for Automatic Timers."
 			send " &7- &bUsers&8: &7&oView the Options for Users."
