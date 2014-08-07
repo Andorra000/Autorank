@@ -3,22 +3,26 @@
 #		\ \  __ \ \ \_\ \/_/\ \/\ \ \/\ \ \  __<\ \  __ \ \ \-.  \ \  _"-.  
 #		 \ \_\ \_\ \_____\ \ \_\ \ \_____\ \_\ \_\ \_\ \_\ \_\\"\_\ \_\ \_\ 
 #		  \/_/\/_/\/_____/  \/_/  \/_____/\/_/ /_/\/_/\/_/\/_/ \/_/\/_/\/_/ 
-#				Version 2.0.5 By andorra101
+#				Version 2.1 By andorra101
                                                                     
 
 options:
 	UUIDs: false
-	# Saves Variables as %uuid of player% rather than %player%.
+						# Saves Variables as %uuid of player% rather than %player%.
 
 	UUID-Autokick: true
 
-	Time Checking Command: gtime
-	# Default Autorank Checking command.
+	Time Checking Command: gametime
+						# Default Autorank Checking command.
+
+	Aliases: gtime, ptime, playtime
+						# Autorank command aliases
+
 	Time Check: 1 minute 
-	#Time that a check should be made to rank up players.
+						#Time that a check should be made to rank up players.
 
 # DO NOT EDIT THIS:
-	Version: 2.0.5
+	Version: 2.1
 
 # Timer------------------------------------------------
 
@@ -35,15 +39,16 @@ every {@Time Check}:
 						send {_rewardMSG} to loop-player
 					loop {Autorank::timer::timers::%loop-value%::rewards::consoleCommands::*}:
 						set {_command} to "%loop-value-2%"
-						replace all "%%player%%" in {_command} with "%loop-player%"
 						replace all "<player>" in {_command} with "%loop-player%"
-						make console execute command "%loop-value-2%"
+						replace all "%%player%%" in {_command} with "%loop-player%"
+						make console execute command "%{_command}%"
 on disconnect:
 	set {Autorank::users::%{Autorank::rankVar::%event-player%}%::time} to difference between {Autorank::users::%{Autorank::rankVar::%event-player%}%::timer} and now
      
 # Commands-----------------------------------------------
 
 command /{@Time Checking Command} [<offline player>]:
+	aliases: {@Aliases}
 	trigger:
 		if arg 1 is set:
 			if arg 1 is online:
@@ -113,7 +118,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 						if arg 3 is set:
 							if {Autorank::timer::timers::%arg 3%} is set:
 								if arg 4 is set:
-									if arg 4 is "commands":
+									if arg 4 is "commands" or "command":
 										if arg 5 is set:
 											if arg 5 is "add":
 												if arg 6 is set:
@@ -126,7 +131,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 											if arg 5 is "remove":
 												if arg 6 is set:
 													if {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*} contains arg 6:
-														remove "%arg 6%" from {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}
+														remove arg 6 from {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}
 														send "&9Removed &b%arg 6% &9from Timer %arg 3%."
 														stop
 													else:
@@ -135,11 +140,16 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 												else:
 													send "&9Usage: /autorank timer edit %arg 3% commands remove <command>"
 													stop
+											if arg 5 is "clear":
+												loop {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}:
+													delete {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::%loop-index%}
+												send "&9Cleared %arg 3%'s reward commands."
+												stop
 											else:
-												send "&9Usage: /autorank timer edit commands <add/remove> <command>"
+												send "&9Usage: /autorank timer edit %arg 3% commands <add/remove/clear> [<command>]"
 												stop
 										else:
-											send "&9Usage: /autorank timer edit commands <add/remove> <command>"
+											send "&9Usage: /autorank timer edit %arg 3% commands <add/remove> <command>"
 											stop
 									if arg 4 is "duration" or "time":
 										if arg 5 is set:
@@ -153,17 +163,36 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 											stop
 									if arg 4 is "message":
 										if arg 5 is set:
-											set {Autorank::timer::timers::%arg 3%::rewards::rewardMessage} to "%arg 5%"
-											send "&9%arg 3%'s reward message has been set to:"
-											send "%{Autorank::timer::timers::%arg 3%::rewards::rewardMessage}%"
-											stop
+											if arg 5 is "set":
+												if arg 6 is set:
+													set {Autorank::timer::timers::%arg 3%::rewards::rewardMessage} to "%arg 6%"
+													send "&9%arg 3%'s reward message has been set to:"
+													send "%{Autorank::timer::timers::%arg 3%::rewards::rewardMessage}%"
+													stop
+											if arg 5 is "delete":
+												if {Autorank::timer::timers::%arg 3%::rewards::rewardMessage} is set:
+													delete {Autorank::timer::timers::%arg 3%::rewards::rewardMessage}
+													send "&9Timer %arg 3%'s Reward Message has been deleted."
+												else:
+													send "&cError: %arg 3%'s Reward Message isn't set."
+											if arg 5 is "view":
+												send "%{Autorank::timer::timers::%arg 3%::rewards::rewardMessage}%"
+											else:
+												send "&9Usage: /autorank timer edit message <set/delete/view> <message>"
 										else:
-											send "&9Usage: /autorank timer edit message <message>"
+											send "&9Usage: /autorank timer edit message <set/delete/view> <message>"
 											stop
+									else:
+										send "&9---*---[ Autorank v{@Version} ]---*---"
+										send "&9Timer Editor:"
+										send "&7- &bCommands <add/remove/clear> <command>&9| &7Add a command to reward your players with."
+										send "&7- &bDuration <minutes>&9| &7Set the duration of the rank"
+										send "&7- &bMessage <Message>&9| &7Set what should be sent when they rank up"
+										stop
 								else:
 									send "&9---*---[ Autorank v2.0.0 ]---*---"
 									send "&9Timer Editor:"
-									send "&7- &bCommands <add/remove> <command>&9| &7Add a command to reward your players with."
+									send "&7- &bCommands <add/remove/clear> <command>&9| &7Add a command to reward your players with."
 									send "&7- &bDuration <minutes>&9| &7Set the duration of the rank"
 									send "&7- &bMessage <Message>&9| &7Set what should be sent when they rank up"
 									stop
@@ -214,7 +243,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 								send "&9- &bCommands&7:"
 								if amount of {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*} is more than 0:
 									loop {Autorank::timer::timers::%arg 3%::rewards::consoleCommands::*}:
-										send " &7- &b%loop-value-2%"
+										send " &7- &b%loop-value%"
 									stop
 								else:
 									send " &7&oNo Commands are set."
@@ -237,7 +266,7 @@ command /Autorank [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
 										send " &7- &b%loop-value-2%"
 								else:
 									send " &7&oNo Commands are set."
-									stop
+							stop
 					else:	
 						send ""
 						send "&9---*---[ &bAutorank v{@Version} &9]---*---"
