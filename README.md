@@ -1,4 +1,4 @@
 Autorank
 ========
 
-Autorank 2.0.5 for Skript 2.1.2
+Autorank 2.1 for Skript 2.1.2
